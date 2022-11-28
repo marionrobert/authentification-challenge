@@ -66,6 +66,30 @@ app.post("/register", function(req, res){
   });
 });
 
+// log in with email and password already registered
+app.post("/login", function(req, res){
+  const username = req.body.username;
+  const password = req.body.password;
+
+  User.findOne({email: username}, function(err, foundUser){
+    if (err) {
+      console.log(`the error is ${err}`);
+    } else {
+      if (foundUser){
+        console.log(foundUser);
+        if (foundUser.password === password){
+          console.log("Loged in successfully");
+          res.render("secrets");
+        } else {
+          console.log(`Incorrect password.`);
+        }
+      } else {
+        console.log(`There is no user with the following username: ${username}`);
+      }
+    }
+  });
+});
+
 
 app.listen(3000, function(){
   console.log("Server started on port 3000.");
