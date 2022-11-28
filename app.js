@@ -2,6 +2,7 @@
 const express = require("express");
 const bodyParser = require("body-parser");
 const ejs = require("ejs");
+const mongoose = require("mongoose");
 
 const app = express();
 
@@ -16,6 +17,25 @@ app.use(bodyParser.urlencoded({
   extended: true
 }));
 
+// connect app.js to the DB and create it if doesn't exist
+// with property useNewUrlParser to get rid of the errors given by MongoDB
+mongoose.connect("mongodb://localhost:27017/userDB", {useNewUrlParser: true});
+
+// create schema
+const usersSchema = {
+  email: {
+    type: String,
+    required: true
+  },
+  password: {
+    type: String,
+    required: true
+  }
+};
+
+// create model
+const User = new mongoose.model("User", usersSchema);
+
 app.get("/", function(req, res){
   res.render("home");
 });
@@ -26,6 +46,24 @@ app.get("/login", function(req, res){
 
 app.get("/register", function(req, res){
   res.render("register");
+});
+
+app.post("/register", function(req, res){
+  // console.log(req.body);
+  const newUser = new User({
+    email: req.body.username,
+    password: req.body.password
+  });
+
+  // register newUser and raise err if there is one during save process
+  // error is well raised
+  newUser.save(function(err){
+    if (err){
+      console.log(`the error is ${err}`);
+    } else {
+      res.render("secrets");
+    }
+  });
 });
 
 
