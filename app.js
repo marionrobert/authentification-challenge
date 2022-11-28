@@ -1,4 +1,5 @@
 //jshint esversion:6
+require("dotenv").config();
 const express = require("express");
 const bodyParser = require("body-parser");
 const ejs = require("ejs");
@@ -34,11 +35,11 @@ const usersSchema = new mongoose.Schema ({
   }
 });
 
-// create secret element to seal the encryption
+// create key to seal the encryption (.env)
 // & add encryption package as plugin
 // set option encryptedFields to encrypt only password field
-const secret = "Thisisourlittlesecret.";
-usersSchema.plugin(encrypt, {secret: secret, encryptedFields: ["password"] });
+
+usersSchema.plugin(encrypt, {secret: process.env.SECRET, encryptedFields: ["password"] });
 
 // create model
 const User = new mongoose.model("User", usersSchema);
