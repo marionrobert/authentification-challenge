@@ -3,6 +3,7 @@ const express = require("express");
 const bodyParser = require("body-parser");
 const ejs = require("ejs");
 const mongoose = require("mongoose");
+const encrypt = require("mongoose-encryption");
 
 const app = express();
 
@@ -21,8 +22,8 @@ app.use(bodyParser.urlencoded({
 // with property useNewUrlParser to get rid of the errors given by MongoDB
 mongoose.connect("mongodb://localhost:27017/userDB", {useNewUrlParser: true});
 
-// create schema
-const usersSchema = {
+// create simple schema (JS object) or complexe schema to plug additionnal packages to it
+const usersSchema = new mongoose.Schema ({
   email: {
     type: String,
     required: true
@@ -31,7 +32,13 @@ const usersSchema = {
     type: String,
     required: true
   }
-};
+});
+
+// create secret element to seal the encryption
+// & add encryption package as plugin
+// set option encryptedFields to encrypt only password field
+const secret = "Thisisourlittlesecret.";
+usersSchema.plugin(encrypt, {secret: secret, encryptedFields: ["password"] });
 
 // create model
 const User = new mongoose.model("User", usersSchema);
