@@ -7,10 +7,12 @@ const mongoose = require("mongoose");
 const session = require("express-session");
 const passport = require("passport");
 const passportLocalMongoose = require("passport-local-mongoose");
+const GoogleStrategy = require("passport-google-oauth2").Strategy;
+const findOrCreate = require("mongoose-findOrCreate");
 // const encrypt = require("mongoose-encryption");
 // const md5 = require("md5");
 // const bcrypt = require("bcrypt");
-const saltRounds = 10;
+// const saltRounds = 10;
 
 const app = express();
 
@@ -48,24 +50,61 @@ const usersSchema = new mongoose.Schema ({
   },
   password: {
     type: String
+  },
+  googleId: {
+    type: String
   }
 });
 
 // enable passportLocalMongoose package to encrypt passwords
 usersSchema.plugin(passportLocalMongoose);
+usersSchema.plugin(findOrCreate);
 
 // create model
 const User = new mongoose.model("User", usersSchema);
 
 passport.use(User.createStrategy());
 
-passport.serializeUser(User.serializeUser());
-passport.deserializeUser(User.deserializeUser());
+passport.serializeUser(function(user, done) {
+  done(null, user);
+});
+
+passport.deserializeUser(function(user, done) {
+  done(null, user);
+});
+
+// set up the google strategy, with options to help google to recognize our app
+passport.use(new GoogleStrategy({
+    clientID: process.env.CLIENT_ID,
+    clientSecret: process.env.CLIENT_SECRET,
+    callbackURL: "http://localhost:3000/auth/google/authentification-challenge",
+    userProfileURL: "https://www.googleapis.com/oauth2/v3/userinfo"
+  },
+  function(accessToken, refreshToken, profile, cb) {
+    console.log(profile);
+    User.findOrCreate({ googleId: profile.id }, function (err, user) {
+      return cb(err, user);
+    });
+  }
+));
 
 
 app.get("/", function(req, res){
   res.render("home");
 });
+
+// use passport to authenticate the user using google strategy
+// and ask for the user profile
+app.route("/auth/google")
+  .get(passport.authenticate("google", {scope: ["profile"]})
+);
+
+app.get("/auth/google/authentification-challenge",
+  passport.authenticate("google", { failureRedirect: "/login" }),
+  function(req, res) {
+    // Successful authentication, redirect secrets page.
+    res.redirect('/secrets');
+  });
 
 app.get("/login", function(req, res){
   res.render("login");
