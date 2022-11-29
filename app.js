@@ -5,7 +5,9 @@ const bodyParser = require("body-parser");
 const ejs = require("ejs");
 const mongoose = require("mongoose");
 // const encrypt = require("mongoose-encryption");
-const md5 = require("md5");
+// const md5 = require("md5");
+const bcrypt = require("bcrypt");
+const saltRounds = 10;
 
 const app = express();
 
@@ -22,7 +24,8 @@ app.use(bodyParser.urlencoded({
 
 // connect app.js to the DB and create it if doesn't exist
 // with property useNewUrlParser to get rid of the errors given by MongoDB
-mongoose.connect("mongodb://localhost:27017/userDB", {useNewUrlParser: true});
+mongoose.connect("mongodb://127.0.0.1/userDB", {useNewUrlParser: true});
+
 
 // create simple schema (JS object) or complexe schema to plug additionnal packages to it
 const usersSchema = new mongoose.Schema ({
@@ -58,26 +61,29 @@ app.get("/register", function(req, res){
 
 app.post("/register", function(req, res){
   // console.log(req.body);
-  const newUser = new User({
-    email: req.body.username,
-    password: md5(req.body.password)
-  });
+  bcrypt.hash(req.body.password, saltRounds, function(err, hash) {
+    // Store hash in your password DB.
+    const newUser = new User({
+      email: req.body.username,
+      password: hash
+    });
 
-  // register newUser and raise err if there is one during save process
-  // error is well raised
-  newUser.save(function(err){
-    if (err){
-      console.log(`the error is ${err}`);
-    } else {
-      res.render("secrets");
-    }
+    // register newUser and raise err if there is one during save process
+    // error is well raised
+    newUser.save(function(err){
+      if (err){
+        console.log(`the error is ${err}`);
+      } else {
+        res.render("secrets");
+      }
+    });
   });
 });
 
 // log in with email and password already registered
 app.post("/login", function(req, res){
   const username = req.body.username;
-  const password = md5(req.body.password);
+  const password = req.body.password;
 
   User.findOne({email: username}, function(err, foundUser){
     if (err) {
@@ -85,12 +91,14 @@ app.post("/login", function(req, res){
     } else {
       if (foundUser){
         console.log(foundUser);
-        if (foundUser.password === password){
-          console.log("Loged in successfully");
-          res.render("secrets");
-        } else {
-          console.log(`Incorrect password.`);
-        }
+        bcrypt.compare(password, foundUser.password, function(err, result) {
+          if (result === true){
+            console.log("Loged in successfully");
+            res.render("secrets");
+          } else {
+            console.log(`Incorrect password.`);
+          }
+        });
       } else {
         console.log(`There is no user with the following username: ${username}`);
       }
