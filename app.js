@@ -57,6 +57,9 @@ const usersSchema = new mongoose.Schema ({
   },
   facebookId: {
     type: String
+  },
+  secret: {
+    type: String
   }
 });
 
@@ -85,7 +88,7 @@ passport.use(new GoogleStrategy({
     userProfileURL: "https://www.googleapis.com/oauth2/v3/userinfo"
   },
   function(accessToken, refreshToken, profile, cb) {
-    console.log(profile);
+    // console.log(profile);
     User.findOrCreate({ googleId: profile.id }, function (err, user) {
       return cb(err, user);
     });
@@ -99,7 +102,7 @@ passport.use(new FacebookStrategy({
     callbackURL: "http://localhost:3000/auth/facebook/authentification-challenge"
   },
   function(accessToken, refreshToken, profile, cb) {
-    console.log(profile);
+    // console.log(profile);
     User.findOrCreate({
       facebookId: profile.id
     }, function(err, user) {
@@ -155,6 +158,34 @@ app.get("/secrets", function(req, res){
   } else {
     res.redirect("/login");
   }
+});
+
+app.get("/submit", function(req,res){
+  if (req.isAuthenticated()){
+    res.render("submit");
+  } else {
+    res.redirect("/login");
+  }
+});
+
+app.post("/submit", function(req,res){
+  const submittedSecret = req.body.secret;
+  const userId = req.user._id;
+  console.log(submittedSecret);
+  console.log(req.user._id);
+  User.findById(req.user._id, function(err, foundUser){
+    if (err){
+      console.log(`The error is: ${err}`);
+    } else {
+      if (foundUser){
+        console.log(foundUser);
+        foundUser.secret = submittedSecret;
+        foundUser.save(function(){
+          res.redirect("/secrets");
+        })
+      }
+    }
+  })
 });
 
 app.get("/logout", function(req, res){
