@@ -152,15 +152,20 @@ app.get("/register", function(req, res){
 });
 
 app.get("/secrets", function(req, res){
-  // passport method to check if the user is authenticated
-  if (req.isAuthenticated()){
-    res.render("secrets");
-  } else {
-    res.redirect("/login");
-  }
+  // search all Users where secret field is not equal to null
+  User.find({"secret": {$ne: null}}, function(err, foundUsers){
+    if (err) {
+      console.log(`The error is: ${err}`);
+    } else {
+      if (foundUsers) {
+        res.render("secrets", {usersWithScrets: foundUsers});
+      }
+    }
+  })
 });
 
 app.get("/submit", function(req,res){
+  // passport method to check if the user is authenticated
   if (req.isAuthenticated()){
     res.render("submit");
   } else {
