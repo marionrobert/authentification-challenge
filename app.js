@@ -9,6 +9,7 @@ const passport = require("passport");
 const passportLocalMongoose = require("passport-local-mongoose");
 const GoogleStrategy = require("passport-google-oauth2").Strategy;
 const findOrCreate = require("mongoose-findOrCreate");
+const FacebookStrategy = require("passport-facebook").Strategy;
 // const encrypt = require("mongoose-encryption");
 // const md5 = require("md5");
 // const bcrypt = require("bcrypt");
@@ -53,6 +54,9 @@ const usersSchema = new mongoose.Schema ({
   },
   googleId: {
     type: String
+  },
+  facebookId: {
+    type: String
   }
 });
 
@@ -88,10 +92,27 @@ passport.use(new GoogleStrategy({
   }
 ));
 
+// set up the FB Strategy
+passport.use(new FacebookStrategy({
+    clientID: process.env.FACEBOOK_APP_ID,
+    clientSecret: process.env.FACEBOOK_APP_SECRET,
+    callbackURL: "http://localhost:3000/auth/facebook/authentification-challenge"
+  },
+  function(accessToken, refreshToken, profile, cb) {
+    console.log(profile);
+    User.findOrCreate({
+      facebookId: profile.id
+    }, function(err, user) {
+      return cb(err, user);
+    });
+  }
+));
+
 
 app.get("/", function(req, res){
   res.render("home");
 });
+
 
 // use passport to authenticate the user using google strategy
 // and ask for the user profile
@@ -104,7 +125,20 @@ app.get("/auth/google/authentification-challenge",
   function(req, res) {
     // Successful authentication, redirect secrets page.
     res.redirect('/secrets');
-  });
+  }
+);
+
+// use passport to authenticate the user using google strategy
+// and ask for the user profile
+app.get('/auth/facebook', passport.authenticate('facebook'));
+
+app.get('/auth/facebook/authentification-challenge',
+  passport.authenticate('facebook', { failureRedirect: '/login', failureMessage: true }),
+  function(req, res) {
+    // Successful authentication, redirect screts page.
+    res.redirect('/secrets');
+  }
+);
 
 app.get("/login", function(req, res){
   res.render("login");
